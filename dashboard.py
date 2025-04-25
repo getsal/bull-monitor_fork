@@ -52,6 +52,30 @@ CONTRACT_ABI = [
     }
 ]
 
+def format_positions(positions):
+    if not positions:
+        return ""
+    positions = sorted(positions)
+    ranges = []
+    start = positions[0]
+    prev = positions[0]
+    
+    for pos in positions[1:]:
+        if pos != prev + 1:
+            if start == prev:
+                ranges.append(str(start))
+            else:
+                ranges.append(f"{start}-{prev}")
+            start = pos
+        prev = pos
+    
+    if start == prev:
+        ranges.append(str(start))
+    else:
+        ranges.append(f"{start}-{prev}")
+    
+    return ", ".join(ranges)
+
 class QueueMonitor:
     def __init__(self):
         try:
@@ -99,34 +123,57 @@ class QueueMonitor:
                 'total_power': 0,
                 'average_queue_power': 0,
                 'wallet_stats': {},
-                'nft_stats': {}
+                'live_queue': []
             }
             
-        wallet_stats = defaultdict(lambda: {'count': 0, 'total_power': 0})
-        nft_stats = defaultdict(lambda: {'count': 0, 'total_power': 0})
+        wallet_stats = defaultdict(lambda: {'count': 0, 'total_power': 0, 'nft_id': None, 'positions': []})
         total_power = 0
         
-        for entry in queue_data:
+        # Анализ живой очереди
+        live_queue = []
+        current_wallet = None
+        current_entry = None
+        current_positions = []
+        
+        for i, entry in enumerate(queue_data):
             nft_id = entry[0]  # tokenId
             power = float(entry[1]) / 1e18  # power
             wallet = entry[2]  # account
+            position = i + 1
             
             total_power += power
+            
+            # Обновляем статистику
+            if not wallet_stats[wallet]['nft_id']:
+                wallet_stats[wallet]['nft_id'] = nft_id
             wallet_stats[wallet]['count'] += 1
             wallet_stats[wallet]['total_power'] += power
+            wallet_stats[wallet]['positions'].append(position)
             
-            nft_stats[nft_id]['count'] += 1
-            nft_stats[nft_id]['total_power'] += power
+            # Обработка живой очереди
+            if wallet != current_wallet:
+                if current_entry:
+                    current_entry['Positions'] = format_positions(current_positions)
+                    live_queue.append(current_entry)
+                current_wallet = wallet
+                current_positions = [position]
+                current_entry = {
+                    'Positions': str(position),
+                    'Wallet': wallet,
+                    'NFT ID': str(nft_id),
+                    'Power': f"{power:.2f} SP"
+                }
+            else:
+                current_positions.append(position)
+                current_entry['Power'] = f"{float(current_entry['Power'].split()[0]) + power:.2f} SP"
+        
+        if current_entry:
+            current_entry['Positions'] = format_positions(current_positions)
+            live_queue.append(current_entry)
         
         # Сортируем статистику по количеству записей
         sorted_wallet_stats = dict(sorted(
             wallet_stats.items(),
-            key=lambda x: x[1]['count'],
-            reverse=True
-        ))
-        
-        sorted_nft_stats = dict(sorted(
-            nft_stats.items(),
             key=lambda x: x[1]['count'],
             reverse=True
         ))
@@ -136,11 +183,11 @@ class QueueMonitor:
             'total_power': total_power,
             'average_queue_power': total_power / QUEUE_SIZE,
             'wallet_stats': sorted_wallet_stats,
-            'nft_stats': sorted_nft_stats
+            'live_queue': live_queue
         }
 
 def main():
-    st.title("Аналитика очереди GetQueue")
+    st.title("Bullas breadline analytics")
     st.write(f"Контракт: {CONTRACT_ADDRESS}")
     
     try:
@@ -159,40 +206,33 @@ def main():
                 
                 # Отображаем аналитику
                 with queue_container.container():
-                    st.subheader("Общая статистика")
-                    st.write(f"Всего записей в очереди: {analysis['total_entries']}")
-                    st.write(f"Общая сила очереди: {analysis['total_power']:.2f} Spank Power")
-                    st.write(f"Средняя сила очереди: {analysis['average_queue_power']:.2f} Spank Power")
+                    st.subheader("General stats")
+                    st.write(f"Total spank power: {analysis['total_power']:.2f} SP")
+                    st.write(f"Average: {analysis['average_queue_power']:.2f} SP")
+                    st.write(f"Unique wallets: {len(analysis['wallet_stats'])}")
                     
-                    # Создаем DataFrame для статистики по кошелькам
-                    wallet_data = []
+                    # Отображаем живую очередь
+                    if analysis['live_queue']:
+                        st.subheader("Live Queue")
+                        df_live = pd.DataFrame(analysis['live_queue'])
+                        st.dataframe(df_live, use_container_width=True, hide_index=True)
+                    
+                    # Создаем объединенную таблицу статистики
+                    stats_data = []
                     for wallet, stats in analysis['wallet_stats'].items():
                         avg_power = stats['total_power'] / stats['count'] if stats['count'] > 0 else 0
-                        wallet_data.append({
-                            'Кошелек': wallet,
-                            'Количество записей': stats['count'],
-                            'Средняя сила (Spank Power)': f"{avg_power:.2f}"
+                        stats_data.append({
+                            'Wallet': wallet,
+                            'Positions': format_positions(stats['positions']),
+                            'NFT ID': stats['nft_id'],
+                            'Count': stats['count'],
+                            'SP': f"{avg_power:.2f}"
                         })
                     
-                    if wallet_data:
-                        st.subheader("Статистика по кошелькам")
-                        df_wallets = pd.DataFrame(wallet_data)
-                        st.dataframe(df_wallets, use_container_width=True)
-                    
-                    # Создаем DataFrame для статистики по NFT
-                    nft_data = []
-                    for nft_id, stats in analysis['nft_stats'].items():
-                        avg_power = stats['total_power'] / stats['count'] if stats['count'] > 0 else 0
-                        nft_data.append({
-                            'NFT ID': nft_id,
-                            'Количество записей': stats['count'],
-                            'Средняя сила (Spank Power)': f"{avg_power:.2f}"
-                        })
-                    
-                    if nft_data:
-                        st.subheader("Статистика по NFT")
-                        df_nfts = pd.DataFrame(nft_data)
-                        st.dataframe(df_nfts, use_container_width=True)
+                    if stats_data:
+                        st.subheader("Wallet stats")
+                        df_stats = pd.DataFrame(stats_data)
+                        st.dataframe(df_stats, use_container_width=True, hide_index=True)
                 
                 # Обновляем каждые 10 секунд
                 time.sleep(10)

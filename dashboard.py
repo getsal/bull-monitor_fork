@@ -187,7 +187,7 @@ class QueueMonitor:
         }
 
 def main():
-    st.title("Bullas breadline analytics")
+    st.title("Bullas breadline analytics by Klimmo")
     st.write(f"Контракт: {CONTRACT_ADDRESS}")
     
     try:

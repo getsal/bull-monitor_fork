@@ -1,44 +1,44 @@
 # Bullas Monitor
 
-Мониторинг и аналитика очереди GetQueue в сети BeraChain.
+Monitoring and analytics of the GetQueue queue in the BeraChain network.
 
-## Описание
+## Description
 
-Этот проект представляет собой дашборд для мониторинга и анализа очереди GetQueue в смарт-контракте BeraChain. Дашборд показывает:
+This project is a dashboard for monitoring and analysing the GetQueue queue in the BeraChain smart contract. The dashboard shows:
 
-- Общую статистику очереди
-- Среднюю силу очереди
-- Статистику по кошелькам
-- Статистику по NFT
+- General queue statistics
+- Average queue strength
+- Wallet statistics
+- NFT statistics
 
-## Установка
+## Setup
 
-1. Клонируйте репозиторий:
+1. Clone the repository:
 ```bash
 git clone https://github.com/your-username/bullas-monitor.git
 cd bullas-monitor
 ```
 
-2. Установите зависимости:
-```bash
+2. Install dependencies:
+````bash
 pip install -r requirements.txt
 ```
 
-## Использование
+## Usage
 
-Запустите дашборд:
-```bash
+Start the dashboard:
+````bash
 streamlit run dashboard.py
 ```
 
-## Конфигурация
+## Configuration
 
-Основные параметры конфигурации находятся в файле `dashboard.py`:
+The main configuration options are in the `dashboard.py` file:
 
-- `CONTRACT_ADDRESS` - адрес смарт-контракта
-- `BERACHAIN_RPC` - RPC endpoint BeraChain
-- `QUEUE_SIZE` - максимальный размер очереди
+- `CONTRACT_ADDRESS` - smart contract address
+- `BERACHAIN_RPC` - BeraChain RPC endpoint
+- `QUEUE_SIZE` - maximum queue size
 
-## Лицензия
+## Licence
 
-MIT 
+MIT

@@ -1,2 +1,34 @@
-*
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# 環境ファイル
 .env
+*.env
+
+# 仮想環境
+venv/
+ENV/
+env/
+.venv/
+
+# IDE: PyCharm
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ログファイル
+*.log
+
+# Jupyter Notebook チェックポイント
+.ipynb_checkpoints/
+
+# テストキャッシュやカバレッジ
+.cache/
+coverage.xml
+htmlcov/
+.tox/
+.pytest_cache/
